@@ -1,0 +1,237 @@
+/* Upload Page Styles */
+.upload-page {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.upload-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 0 1rem;
+}
+
+.upload-header h1 {
+  font-size: clamp(2rem, 5vw, 2.5rem);
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+
+.upload-header p {
+  color: #64748b;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
+}
+
+.upload-container {
+  margin-bottom: 3rem;
+  width: 100%;
+}
+
+.upload-area {
+  border: 2px dashed #cbd5e1;
+  border-radius: 0.75rem;
+  padding: clamp(2rem, 5vw, 3rem);
+  text-align: center;
+  transition: all 0.3s ease;
+  background: white;
+  width: 100%;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-area:hover {
+  border-color: #667eea;
+  background: #fafbff;
+}
+
+.upload-area.has-file {
+  border-color: #16a34a;
+  border-style: solid;
+  background: #f0fdf4;
+}
+
+.upload-label {
+  cursor: pointer;
+  display: block;
+  width: 100%;
+}
+
+.upload-prompt svg {
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+
+.upload-prompt h3 {
+  margin-bottom: 0.5rem;
+  font-size: clamp(1.1rem, 2.5vw, 1.25rem);
+  color: #374151;
+}
+
+.upload-prompt p {
+  color: #64748b;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+}
+
+.file-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.file-preview svg {
+  color: #16a34a;
+  margin-bottom: 1rem;
+}
+
+.file-preview h3 {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #374151;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  word-break: break-word;
+  text-align: center;
+}
+
+.file-preview p {
+  color: #64748b;
+  font-size: clamp(0.9rem, 2vw, 1rem);
+}
+
+.upload-btn {
+  width: 100%;
+  padding: clamp(0.875rem, 2.5vw, 1rem);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.upload-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.upload-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.upload-info {
+  background: white;
+  padding: clamp(1.5rem, 3vw, 2rem);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  width: 100%;
+}
+
+.upload-info h3 {
+  margin-bottom: 1.5rem;
+  font-size: clamp(1.1rem, 2.5vw, 1.25rem);
+  font-weight: 600;
+  text-align: center;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.feature {
+  text-align: center;
+  padding: 1rem;
+}
+
+.feature h4 {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: clamp(0.95rem, 2vw, 1rem);
+}
+
+.feature p {
+  color: #64748b;
+  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
+  line-height: 1.4;
+}
+
+/* Tablet Styles */
+@media (max-width: 1024px) {
+  .upload-page {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .upload-header {
+    margin-bottom: 2rem;
+  }
+  
+  .upload-container {
+    margin-bottom: 2rem;
+  }
+  
+  .upload-area {
+    min-height: 150px;
+  }
+  
+  .features-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  
+  .feature {
+    padding: 0.75rem;
+  }
+}
+
+/* Small Mobile Styles */
+@media (max-width: 480px) {
+  .upload-page {
+    padding: 0 0.5rem;
+  }
+  
+  .upload-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .upload-header p {
+    font-size: 0.95rem;
+  }
+  
+  .upload-area {
+    padding: 1.5rem;
+    min-height: 120px;
+  }
+  
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .feature {
+    padding: 0.5rem;
+  }
+  
+  .upload-info {
+    padding: 1rem;
+  }
+}
