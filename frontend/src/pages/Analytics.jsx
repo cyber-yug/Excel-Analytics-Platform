@@ -331,8 +331,65 @@ const Analytics = () => {
     return null;
   };
 
-  const generateChart = async () => {
+  // Generate chart with updated configuration
+  const generateChartWithConfig = async (updatedConfig) => {
     if (!selectedFile) return;
+
+    try {
+      console.log('Generating chart with updated config:', updatedConfig);
+      const response = await axios.post(`http://localhost:3001/api/analytics/chart/${selectedFile._id}`, updatedConfig);
+      console.log('Chart response:', response.data);
+      setChartData(response.data);
+    } catch (error) {
+      console.error('Failed to generate chart:', error);
+      console.error('Error details:', error.response?.data);
+      
+      // Try to create fallback chart data
+      if (selectedAutoChart) {
+        const fallbackChartData = createFallbackChartData(selectedAutoChart, stats);
+        if (fallbackChartData) {
+          setChartData(fallbackChartData);
+        }
+      }
+    }
+  };
+
+  const generateChart = async () => {
+    if (!selectedFile) {
+      alert('Please select a file first');
+      return;
+    }
+
+    // Validate chart configuration based on chart type
+    const validationErrors = [];
+    
+    if (chartConfig.type === 'bar' || chartConfig.type === 'line') {
+      if (!chartConfig.xColumn) validationErrors.push('Please select an X-axis column');
+      if (!chartConfig.yColumn) validationErrors.push('Please select a Y-axis column');
+    }
+    
+    if (chartConfig.type === 'scatter') {
+      if (!chartConfig.xColumn) validationErrors.push('Please select an X-axis column for scatter plot');
+      if (!chartConfig.yColumn) validationErrors.push('Please select a Y-axis column for scatter plot');
+      
+      // Recommend numerical columns for scatter plots
+      if (chartConfig.xColumn && !stats.numericalColumns.includes(chartConfig.xColumn)) {
+        validationErrors.push('X-axis should be a numerical column for best scatter plot results');
+      }
+      if (chartConfig.yColumn && !stats.numericalColumns.includes(chartConfig.yColumn)) {
+        validationErrors.push('Y-axis should be a numerical column for scatter plots');
+      }
+    }
+    
+    if (chartConfig.type === 'pie' || chartConfig.type === 'doughnut') {
+      if (!chartConfig.groupBy) validationErrors.push('Please select a category column to group by');
+      if (!chartConfig.yColumn) validationErrors.push('Please select a value column for the chart');
+    }
+    
+    if (validationErrors.length > 0) {
+      alert('Please fix the following issues:\n\n' + validationErrors.join('\n'));
+      return;
+    }
 
     try {
       console.log('Generating chart with config:', chartConfig);
@@ -342,6 +399,15 @@ const Analytics = () => {
     } catch (error) {
       console.error('Failed to generate chart:', error);
       console.error('Error details:', error.response?.data);
+      
+      // Provide user-friendly error messages
+      if (error.response?.status === 400) {
+        alert('Invalid chart configuration. Please check your column selections.');
+      } else if (error.response?.status === 404) {
+        alert('File not found. Please select a valid file.');
+      } else {
+        alert('Failed to generate chart. Please try again.');
+      }
     }
   };
 
@@ -655,6 +721,118 @@ const Analytics = () => {
                         </div>
                       </div>
 
+                      {/* Axis Customization Panel for Smart Dashboard */}
+                      <div className="axis-customization-panel">
+                        <h4 className="axis-title">🎛️ Customize Chart Axes</h4>
+                        <div className="axis-controls">
+                          {(selectedAutoChart.config.type === 'bar' || selectedAutoChart.config.type === 'line' || selectedAutoChart.config.type === 'scatter') && (
+                            <>
+                              <div className="axis-control">
+                                <label className="axis-label">X-Axis Column:</label>
+                                <select
+                                  value={chartConfig.xColumn || selectedAutoChart.config.xColumn}
+                                  onChange={(e) => {
+                                    const newConfig = { 
+                                      ...selectedAutoChart.config,
+                                      ...chartConfig,
+                                      xColumn: e.target.value,
+                                      type: selectedAutoChart.config.type 
+                                    };
+                                    setChartConfig(newConfig);
+                                    // Auto-regenerate chart with new axis
+                                    setTimeout(() => generateChartWithConfig(newConfig), 100);
+                                  }}
+                                  className="axis-select"
+                                >
+                                  {stats.headers.map(header => (
+                                    <option key={header} value={header}>
+                                      {header} {stats.categoricalColumns.includes(header) ? ' (Text)' : ' (Number)'}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="axis-control">
+                                <label className="axis-label">Y-Axis Column:</label>
+                                <select
+                                  value={chartConfig.yColumn || selectedAutoChart.config.yColumn}
+                                  onChange={(e) => {
+                                    const newConfig = { 
+                                      ...selectedAutoChart.config,
+                                      ...chartConfig,
+                                      yColumn: e.target.value,
+                                      type: selectedAutoChart.config.type 
+                                    };
+                                    setChartConfig(newConfig);
+                                    // Auto-regenerate chart with new axis
+                                    setTimeout(() => generateChartWithConfig(newConfig), 100);
+                                  }}
+                                  className="axis-select"
+                                >
+                                  {stats.numericalColumns.map(header => (
+                                    <option key={header} value={header}>
+                                      {header} (Number)
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </>
+                          )}
+
+                          {(selectedAutoChart.config.type === 'pie' || selectedAutoChart.config.type === 'doughnut') && (
+                            <>
+                              <div className="axis-control">
+                                <label className="axis-label">Category Column:</label>
+                                <select
+                                  value={chartConfig.groupBy || selectedAutoChart.config.groupBy}
+                                  onChange={(e) => {
+                                    const newConfig = { 
+                                      ...selectedAutoChart.config,
+                                      ...chartConfig,
+                                      groupBy: e.target.value,
+                                      type: selectedAutoChart.config.type 
+                                    };
+                                    setChartConfig(newConfig);
+                                    // Auto-regenerate chart with new grouping
+                                    setTimeout(() => generateChartWithConfig(newConfig), 100);
+                                  }}
+                                  className="axis-select"
+                                >
+                                  {stats.categoricalColumns.map(header => (
+                                    <option key={header} value={header}>
+                                      {header} (Text)
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="axis-control">
+                                <label className="axis-label">Value Column:</label>
+                                <select
+                                  value={chartConfig.yColumn || selectedAutoChart.config.yColumn}
+                                  onChange={(e) => {
+                                    setChartConfig(prev => ({ 
+                                      ...prev, 
+                                      yColumn: e.target.value,
+                                      type: selectedAutoChart.config.type 
+                                    }));
+                                    // Auto-regenerate chart with new values
+                                    setTimeout(() => generateChart(), 100);
+                                  }}
+                                  className="axis-select"
+                                >
+                                  {stats.numericalColumns.map(header => (
+                                    <option key={header} value={header}>
+                                      {header} (Number)
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="chart-display-area">
                         <div className="chart-container">
                           {useECharts ? (
@@ -705,49 +883,96 @@ const Analytics = () => {
                       {(chartConfig.type === 'bar' || chartConfig.type === 'line' || chartConfig.type === 'scatter') && (
                         <>
                           <div className="config-group">
-                            <label className="config-label">X-Axis Column:</label>
+                            <label className="config-label">
+                              X-Axis Column:
+                              <span className="config-hint"> (Categories/Labels)</span>
+                            </label>
                             <select
                               value={chartConfig.xColumn}
                               onChange={(e) => setChartConfig(prev => ({ ...prev, xColumn: e.target.value }))}
                               className="config-select"
                             >
-                              <option value="">Select column...</option>
+                              <option value="">Select column for X-axis...</option>
                               {stats.headers.map(header => (
-                                <option key={header} value={header}>{header}</option>
+                                <option key={header} value={header}>
+                                  {header} 
+                                  {stats.categoricalColumns.includes(header) ? ' (Text)' : ' (Number)'}
+                                </option>
                               ))}
                             </select>
                           </div>
 
                           <div className="config-group">
-                            <label className="config-label">Y-Axis Column:</label>
+                            <label className="config-label">
+                              Y-Axis Column:
+                              <span className="config-hint"> (Values/Numbers)</span>
+                            </label>
                             <select
                               value={chartConfig.yColumn}
                               onChange={(e) => setChartConfig(prev => ({ ...prev, yColumn: e.target.value }))}
                               className="config-select"
                             >
-                              <option value="">Select column...</option>
+                              <option value="">Select column for Y-axis...</option>
                               {stats.numericalColumns.map(header => (
-                                <option key={header} value={header}>{header}</option>
+                                <option key={header} value={header}>
+                                  {header} (Number)
+                                </option>
                               ))}
                             </select>
                           </div>
+
+                          {chartConfig.type === 'scatter' && (
+                            <div className="config-note">
+                              <p>💡 <strong>Scatter Plot:</strong> Both X and Y should be numerical columns for best results</p>
+                            </div>
+                          )}
                         </>
                       )}
 
                       {(chartConfig.type === 'pie' || chartConfig.type === 'doughnut') && (
-                        <div className="config-group">
-                          <label className="config-label">Group By:</label>
-                          <select
-                            value={chartConfig.groupBy}
-                            onChange={(e) => setChartConfig(prev => ({ ...prev, groupBy: e.target.value }))}
-                            className="config-select"
-                          >
-                            <option value="">Select column...</option>
-                            {stats.categoricalColumns.map(header => (
-                              <option key={header} value={header}>{header}</option>
-                            ))}
-                          </select>
-                        </div>
+                        <>
+                          <div className="config-group">
+                            <label className="config-label">
+                              Category Column:
+                              <span className="config-hint"> (Group data by)</span>
+                            </label>
+                            <select
+                              value={chartConfig.groupBy}
+                              onChange={(e) => setChartConfig(prev => ({ ...prev, groupBy: e.target.value }))}
+                              className="config-select"
+                            >
+                              <option value="">Select category column...</option>
+                              {stats.categoricalColumns.map(header => (
+                                <option key={header} value={header}>
+                                  {header} (Text)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="config-group">
+                            <label className="config-label">
+                              Value Column:
+                              <span className="config-hint"> (Numbers to sum)</span>
+                            </label>
+                            <select
+                              value={chartConfig.yColumn}
+                              onChange={(e) => setChartConfig(prev => ({ ...prev, yColumn: e.target.value }))}
+                              className="config-select"
+                            >
+                              <option value="">Select value column...</option>
+                              {stats.numericalColumns.map(header => (
+                                <option key={header} value={header}>
+                                  {header} (Number)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="config-note">
+                            <p>💡 <strong>Pie Charts:</strong> Data will be grouped by category and values will be summed</p>
+                          </div>
+                        </>
                       )}
 
                       <button 

@@ -189,6 +189,87 @@
   color: #1E293B;
 }
 
+.config-hint {
+  font-size: 0.85rem;
+  color: #64748B;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.config-note {
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.config-note p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #0369A1;
+  line-height: 1.4;
+}
+
+.config-note strong {
+  color: #1E40AF;
+}
+
+/* Axis Customization Panel Styles */
+.axis-customization-panel {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.axis-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1E293B;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.axis-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.axis-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.axis-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.axis-select {
+  padding: 0.75rem;
+  background: #FFFFFF;
+  border: 2px solid #E5E7EB;
+  border-radius: 8px;
+  color: #1F2937;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.axis-select:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.axis-select:hover {
+  border-color: #9CA3AF;
+}
+
 .generate-chart-btn {
   width: 100%;
   padding: 1rem;
