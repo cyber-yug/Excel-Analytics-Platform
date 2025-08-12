@@ -4,6 +4,11 @@
   box-sizing: border-box;
 }
 
+html, body, #root {
+  width: 100%;
+  height: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -13,6 +18,9 @@ body {
   background-color: #f8fafc;
   color: #334155;
   overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .app {
@@ -20,12 +28,14 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
+  max-width: 100%;
 }
 
 .main-content {
   flex: 1;
   padding: 2rem;
   width: 100%;
+  max-width: 100%;
   min-height: calc(100vh - 80px); /* Adjust based on navbar height */
 }
 
@@ -227,10 +237,11 @@ body {
   }
 }
 
-/* Container for centering content with max-width on very large screens */
+/* Full width layout for all screen sizes */
+
+/* Optimize padding for very large screens */
 @media (min-width: 1400px) {
   .main-content {
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: 1.5rem;
   }
 }

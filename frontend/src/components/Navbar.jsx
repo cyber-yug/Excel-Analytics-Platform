@@ -13,25 +13,27 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="navbar">
-      <div className="navbar-brand">
-        <BarChart3 size={24} />
-        <span>Excel Analytics</span>
-      </div>
-      
-      <div className="navbar-menu">
-        {navItems.map(({ path, icon: Icon, label }) => (
-          <Link
-            key={path}
-            to={path}
-            className={`navbar-item ${location.pathname === path ? 'active' : ''}`}
-          >
-            <Icon size={20} />
-            <span>{label}</span>
-          </Link>
-        ))}
-      </div>
-    </nav>
+      <nav className="navbar-bg">
+        <div className="navbar-container">
+          <div className="navbar-brand">
+            <BarChart3 size={24} />
+            <span>Excel Analytics</span>
+          </div>
+          <ul className="navbar-list">
+            {navItems.map(({ path, icon: Icon, label }) => (
+              <li key={path}>
+                <Link
+                  to={path}
+                  className={`navbar-link${location.pathname === path ? ' navbar-link-active' : ''}`}
+                >
+                  <Icon size={20} className="navbar-link-icon" />
+                  <span>{label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </nav>
   );
 };
 

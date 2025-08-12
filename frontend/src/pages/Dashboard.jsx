@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Upload, BarChart3, FileText, TrendingUp } from 'lucide-react';
@@ -37,98 +38,62 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="dashboard loading">
-        <div className="loading-spinner">Loading...</div>
+      <div className="dashboard-bg">
+        <div className="dashboard-container">
+          <div className="loading">Loading...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <h1>Excel Analytics Dashboard</h1>
-        <p>Analyze your Excel data with powerful visualizations and insights</p>
-      </div>
-
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FileText size={32} />
+    <div className="dashboard-bg">
+      <div className="dashboard-container">
+        <h1 className="dashboard-title">Excel Analytics Dashboard</h1>
+        <p className="dashboard-subtitle">Analyze your Excel data with powerful visualizations and insights</p>
+        <div className="dashboard-summary">
+          <div className="dashboard-card">
+            <div className="dashboard-card-icon">
+              <FileText size={32} />
+            </div>
+            <div>
+              <div className="dashboard-card-value">{stats.totalFiles}</div>
+              <div className="dashboard-card-label">Files Uploaded</div>
+            </div>
           </div>
-          <div className="stat-content">
-            <h3>{stats.totalFiles}</h3>
-            <p>Files Uploaded</p>
+          <div className="dashboard-card">
+            <div className="dashboard-card-icon">
+              <TrendingUp size={32} />
+            </div>
+            <div>
+              <div className="dashboard-card-value">{stats.totalRows.toLocaleString()}</div>
+              <div className="dashboard-card-label">Total Rows Processed</div>
+            </div>
           </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">
-            <TrendingUp size={32} />
-          </div>
-          <div className="stat-content">
-            <h3>{stats.totalRows.toLocaleString()}</h3>
-            <p>Total Rows Processed</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon">
-            <BarChart3 size={32} />
-          </div>
-          <div className="stat-content">
-            <h3>{stats.recentFiles.length}</h3>
-            <p>Recent Analyses</p>
+          <div className="dashboard-card">
+            <div className="dashboard-card-icon">
+              <BarChart3 size={32} />
+            </div>
+            <div>
+              <div className="dashboard-card-value">{stats.recentFiles.length}</div>
+              <div className="dashboard-card-label">Recent Analyses</div>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="quick-actions">
-        <h2>Quick Actions</h2>
-        <div className="action-cards">
-          <Link to="/upload" className="action-card">
-            <Upload size={48} />
-            <h3>Upload New File</h3>
-            <p>Upload Excel or CSV files for analysis</p>
+        <h2 className="dashboard-actions-title">Quick Actions</h2>
+        <div className="dashboard-actions">
+          <Link to="/upload" className="dashboard-action-card">
+            <Upload size={48} className="dashboard-action-icon" />
+            <div className="dashboard-action-label">Upload New File</div>
+            <div className="dashboard-action-desc">Upload Excel or CSV files for analysis</div>
           </Link>
-
-          <Link to="/analytics" className="action-card">
-            <BarChart3 size={48} />
-            <h3>Create Charts</h3>
-            <p>Generate interactive charts and visualizations</p>
-          </Link>
-
-          <Link to="/history" className="action-card">
-            <FileText size={48} />
-            <h3>View History</h3>
-            <p>Browse previously uploaded files</p>
+          <Link to="/analytics" className="dashboard-action-card">
+            <BarChart3 size={48} className="dashboard-action-icon" />
+            <div className="dashboard-action-label">Create Charts</div>
+            <div className="dashboard-action-desc">Generate interactive charts and visualizations</div>
           </Link>
         </div>
       </div>
-
-      {stats.recentFiles.length > 0 && (
-        <div className="recent-files">
-          <h2>Recent Files</h2>
-          <div className="files-list">
-            {stats.recentFiles.map((file) => (
-              <div key={file._id} className="file-item">
-                <div className="file-info">
-                  <h4>{file.originalName}</h4>
-                  <p>{file.rowCount} rows • {file.columnCount} columns</p>
-                  <span className="upload-date">
-                    {new Date(file.uploadDate).toLocaleDateString()}
-                  </span>
-                </div>
-                <Link 
-                  to={`/analytics/${file._id}`}
-                  className="analyze-btn"
-                >
-                  Analyze
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
