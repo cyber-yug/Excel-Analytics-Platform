@@ -46,6 +46,41 @@ router.post('/', upload.single('file'), async (req, res) => {
         // Extract headers
         const headers = Object.keys(sheetData[0] || {});
         
+        // Analyze column types and get sample data
+        const columnTypes = {};
+        const sampleData = sheetData.slice(0, 5); // First 5 rows as sample
+        
+        headers.forEach(header => {
+            const columnData = sheetData
+                .map(row => row[header])
+                .filter(val => val !== null && val !== undefined && val !== '');
+            
+            if (columnData.length === 0) {
+                columnTypes[header] = 'unknown';
+                return;
+            }
+            
+            // Check if column is numerical
+            const isNumerical = columnData.every(val => {
+                const parsed = parseFloat(val);
+                return !isNaN(parsed) && isFinite(parsed);
+            });
+            
+            // Check if column looks like date
+            const isDate = columnData.some(val => {
+                const date = new Date(val);
+                return !isNaN(date.getTime()) && val.toString().match(/\d{1,4}[-\/]\d{1,2}[-\/]\d{1,4}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/);
+            });
+            
+            if (isNumerical) {
+                columnTypes[header] = 'numerical';
+            } else if (isDate) {
+                columnTypes[header] = 'date';
+            } else {
+                columnTypes[header] = 'categorical';
+            }
+        });
+        
         // Save to database
         const excelDocument = new ExcelData({
             filename: req.file.filename,
@@ -53,6 +88,8 @@ router.post('/', upload.single('file'), async (req, res) => {
             sheetName: sheetName,
             headers: headers,
             data: sheetData,
+            columnTypes: columnTypes,
+            sampleData: sampleData,
             rowCount: sheetData.length,
             columnCount: headers.length,
             fileSize: stats.size,

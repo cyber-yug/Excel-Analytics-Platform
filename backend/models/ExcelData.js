@@ -16,6 +16,11 @@ const ExcelDataSchema = new mongoose.Schema({
     sheetName: String,
     headers: [String],
     data: [mongoose.Schema.Types.Mixed],
+    columnTypes: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+    },
+    sampleData: [mongoose.Schema.Types.Mixed],
     rowCount: {
         type: Number,
         default: 0
