@@ -2,20 +2,16 @@ const express = require('express');
 const multer = require('multer');
 const XLSX = require('xlsx');
 const path = require('path');
-const fs = require('fs');
 const ExcelData = require('../models/ExcelData');
+const cloudinary = require('../config/cloudinary');
+const { authenticateToken, optionalAuth } = require('../middleware/auth');
+const stream = require('stream');
 
 const router = express.Router();
 
-// Upload config
-const storage = multer.diskStorage({
-    destination: './uploads/',
-    filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname}`);
-    }
-});
-const upload = multer({ 
-    storage,
+// Multer memory storage (we'll upload buffer to Cloudinary)
+const upload = multer({
+    storage: multer.memoryStorage(),
     fileFilter: (req, file, cb) => {
         const allowedTypes = ['.xlsx', '.xls', '.csv'];
         const ext = path.extname(file.originalname).toLowerCase();
@@ -24,24 +20,23 @@ const upload = multer({
         } else {
             cb(new Error('Only Excel and CSV files are allowed!'), false);
         }
-    }
+    },
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 // Upload and process file
-router.post('/', upload.single('file'), async (req, res) => {
+router.post('/', optionalAuth, upload.single('file'), async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-        const filePath = path.join(__dirname, '..', req.file.path);
-        const workbook = XLSX.readFile(filePath);
+    // Parse workbook from buffer (supports xlsx/xls/csv)
+    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const sheetData = XLSX.utils.sheet_to_json(worksheet);
-        
-        // Get file stats
-        const stats = fs.statSync(filePath);
+
+    // Stats from in-memory file
+    const fileSize = req.file.size;
         
         // Extract headers
         const headers = Object.keys(sheetData[0] || {});
@@ -81,50 +76,82 @@ router.post('/', upload.single('file'), async (req, res) => {
             }
         });
         
-        // Save to database
+        // Upload raw file buffer to Cloudinary (resource_type raw)
+        const folder = process.env.CLOUDINARY_UPLOAD_FOLDER || 'excel-uploads';
+        const uploadStream = () => new Promise((resolve, reject) => {
+            const options = {
+                resource_type: 'raw',
+                folder,
+                // Keep a deterministic public_id; let Cloudinary add extension automatically
+                public_id: `${Date.now()}-${path.parse(req.file.originalname).name}`,
+                overwrite: true
+            };
+            const cldStream = cloudinary.uploader.upload_stream(options, (error, result) => {
+                if (error) return reject(Object.assign(error, { _cloudinaryOptions: options }));
+                resolve(result);
+            });
+            const bufferStream = new stream.PassThrough();
+            bufferStream.end(req.file.buffer);
+            bufferStream.pipe(cldStream);
+        });
+
+        const cloudResult = await uploadStream();
+
+        // Save metadata only to database (no sheet data stored in MongoDB)
         const excelDocument = new ExcelData({
-            filename: req.file.filename,
+            filename: cloudResult.public_id,
             originalName: req.file.originalname,
-            sheetName: sheetName,
-            headers: headers,
-            data: sheetData,
-            columnTypes: columnTypes,
-            sampleData: sampleData,
+            sheetName,
+            headers,
             rowCount: sheetData.length,
             columnCount: headers.length,
-            fileSize: stats.size,
-            userId: req.body.userId || 'anonymous'
+            fileSize,
+            userId: req.user?._id || req.body.userId || 'anonymous',
+            cloudinary: {
+                url: cloudResult.secure_url,
+                public_id: cloudResult.public_id,
+                bytes: cloudResult.bytes,
+                format: cloudResult.format,
+                resource_type: cloudResult.resource_type
+            }
         });
 
         await excelDocument.save();
 
         res.json({
             success: true,
-            message: 'File uploaded and processed successfully',
+            message: 'File uploaded, processed, and stored successfully',
             fileId: excelDocument._id,
             data: sheetData,
             metadata: {
                 filename: req.file.originalname,
                 rows: sheetData.length,
                 columns: headers.length,
-                headers: headers,
-                fileSize: stats.size
+                headers,
+                fileSize,
+                cloudinaryUrl: cloudResult.secure_url,
+                public_id: cloudResult.public_id
             }
         });
 
     } catch (error) {
+        if (error.http_code === 401 || /invalid signature/i.test(error.message || '')) {
+            console.error('Cloudinary signature/auth issue. Current config:', cloudinary.config());
+        }
         console.error('Upload error:', error);
-        res.status(500).json({ 
-            error: 'Failed to process file',
-            details: error.message 
+        res.status(500).json({
+            error: 'Failed to process or store file',
+            details: error.message,
+            hint: /invalid signature/i.test(error.message || '') ? 'Verify CLOUDINARY_CLOUD_NAME, API key & secret match your dashboard. Ensure no extra spaces and restart server after editing .env.' : undefined
         });
     }
 });
 
 // Get all uploaded files
-router.get('/files', async (req, res) => {
+router.get('/files', optionalAuth, async (req, res) => {
     try {
-        const files = await ExcelData.find({}, {
+        const query = req.user ? { userId: req.user._id } : {}; // Filter by user if authenticated
+        const files = await ExcelData.find(query, {
             data: 0 // Exclude large data field
         }).sort({ uploadDate: -1 });
         
@@ -145,6 +172,16 @@ router.get('/files/:id', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch file data' });
     }
+});
+
+// Simple Cloudinary config diagnostic (no secrets exposed)
+router.get('/ping', (req, res) => {
+    const cfg = cloudinary.config();
+    res.json({
+        ok: true,
+        cloud_name: cfg.cloud_name || null,
+        has_api_key: !!cfg.api_key
+    });
 });
 
 module.exports = router;

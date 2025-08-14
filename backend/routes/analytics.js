@@ -1,7 +1,59 @@
 const express = require('express');
 const ExcelData = require('../models/ExcelData');
+const cloudinary = require('../config/cloudinary');
+const XLSX = require('xlsx');
+const axios = require('axios');
 
 const router = express.Router();
+
+// Helper function to fetch and parse data from Cloudinary
+async function fetchDataFromCloudinary(file) {
+    try {
+        const response = await axios.get(file.cloudinary.url, { responseType: 'arraybuffer' });
+        const workbook = XLSX.read(response.data, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Analyze column types
+        const headers = file.headers || Object.keys(data[0] || {});
+        const columnTypes = {};
+        
+        headers.forEach(header => {
+            const columnData = data
+                .map(row => row[header])
+                .filter(val => val !== null && val !== undefined && val !== '');
+            
+            if (columnData.length === 0) {
+                columnTypes[header] = 'unknown';
+                return;
+            }
+            
+            const isNumerical = columnData.every(val => {
+                const parsed = parseFloat(val);
+                return !isNaN(parsed) && isFinite(parsed);
+            });
+            
+            const isDate = columnData.some(val => {
+                const date = new Date(val);
+                return !isNaN(date.getTime()) && val.toString().match(/\d{1,4}[-\/]\d{1,2}[-\/]\d{1,4}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/);
+            });
+            
+            if (isNumerical) {
+                columnTypes[header] = 'numerical';
+            } else if (isDate) {
+                columnTypes[header] = 'date';
+            } else {
+                columnTypes[header] = 'categorical';
+            }
+        });
+        
+        return { data, columnTypes };
+    } catch (error) {
+        console.error('Error fetching data from Cloudinary:', error);
+        throw new Error('Failed to fetch file data from Cloudinary');
+    }
+}
 
 // Get basic statistics for a file
 router.get('/stats/:fileId', async (req, res) => {
@@ -11,7 +63,9 @@ router.get('/stats/:fileId', async (req, res) => {
             return res.status(404).json({ error: 'File not found' });
         }
 
-        const data = file.data;
+        // Fetch data from Cloudinary
+        const { data, columnTypes } = await fetchDataFromCloudinary(file);
+
         const stats = {
             totalRows: data.length,
             totalColumns: file.headers.length,
@@ -62,7 +116,8 @@ router.get('/stats/:fileId', async (req, res) => {
 
         res.json(stats);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to generate statistics' });
+        console.error('Stats generation error:', error);
+        res.status(500).json({ error: 'Failed to generate statistics', details: error.message });
     }
 });
 
@@ -81,7 +136,8 @@ router.post('/chart/:fileId', async (req, res) => {
             return res.status(404).json({ error: 'File not found' });
         }
 
-        const data = file.data;
+        // Fetch data from Cloudinary
+        const { data, columnTypes } = await fetchDataFromCloudinary(file);
         const headers = file.headers;
         
         // Validate columns exist
@@ -315,37 +371,12 @@ router.get('/suggest/:fileId', async (req, res) => {
             return res.status(404).json({ error: 'File not found' });
         }
 
+        // Fetch data from Cloudinary
+        const { data, columnTypes } = await fetchDataFromCloudinary(file);
         const headers = file.headers;
-        const data = file.data;
-        const columnTypes = file.columnTypes || {};
         
-        // If columnTypes not available, infer them
-        if (Object.keys(columnTypes).length === 0) {
-            headers.forEach(header => {
-                const columnData = data.map(row => row[header]).filter(val => val !== null && val !== undefined && val !== '');
-                const isNumerical = columnData.every(val => !isNaN(parseFloat(val)) && isFinite(val));
-                const isDate = columnData.some(val => {
-                    const date = new Date(val);
-                    return !isNaN(date.getTime()) && val.toString().match(/\d{1,4}[-\/]\d{1,2}[-\/]\d{1,4}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/);
-                });
-                
-                if (isNumerical) {
-                    columnTypes[header] = 'numerical';
-                } else if (isDate) {
-                    columnTypes[header] = 'date';
-                } else {
-                    columnTypes[header] = 'categorical';
-                }
-            });
-        }
-
-        const suggestions = [];
-        const numericalColumns = Object.entries(columnTypes).filter(([_, type]) => type === 'numerical').map(([col, _]) => col);
-        const categoricalColumns = Object.entries(columnTypes).filter(([_, type]) => type === 'categorical').map(([col, _]) => col);
-        const dateColumns = Object.entries(columnTypes).filter(([_, type]) => type === 'date').map(([col, _]) => col);
-
-        // 1. Bar charts for categorical columns (count distribution)
-        categoricalColumns.forEach(col => {
+        // If columnTypes not available, they're already computed in fetchDataFromCloudinary
+        headers.forEach(header => {
             const uniqueValues = [...new Set(data.map(row => row[col]))].filter(val => val !== null && val !== undefined && val !== '').length;
             if (uniqueValues > 1 && uniqueValues <= 20) { // Reasonable number of categories
                 suggestions.push({

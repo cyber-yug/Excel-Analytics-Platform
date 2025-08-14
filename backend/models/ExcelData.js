@@ -15,12 +15,6 @@ const ExcelDataSchema = new mongoose.Schema({
     },
     sheetName: String,
     headers: [String],
-    data: [mongoose.Schema.Types.Mixed],
-    columnTypes: {
-        type: mongoose.Schema.Types.Mixed,
-        default: {}
-    },
-    sampleData: [mongoose.Schema.Types.Mixed],
     rowCount: {
         type: Number,
         default: 0
@@ -33,6 +27,15 @@ const ExcelDataSchema = new mongoose.Schema({
     userId: {
         type: String,
         default: 'anonymous'
+    },
+    cloudinary: {
+        type: new mongoose.Schema({
+            url: String,
+            public_id: String,
+            bytes: Number,
+            format: String,
+            resource_type: String
+        }, { _id: false })
     }
 }, {
     timestamps: true
